@@ -11,8 +11,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 
+import static java.net.URI.create;
 import static java.util.Collections.singletonList;
 
 public final class ComboFactory {
@@ -39,25 +39,33 @@ public final class ComboFactory {
         }
 
         @Override
-        public ClientHttpResponse intercept(final HttpRequest request, final byte[] body, final ClientHttpRequestExecution execution) throws IOException {
-            final HttpRequest baseRequest = new HttpRequest() {
-                @Override public HttpMethod getMethod() {
-                    return request.getMethod();
-                }
+        public ClientHttpResponse intercept(final HttpRequest request,
+                                            final byte[] body,
+                                            final ClientHttpRequestExecution execution) throws IOException {
+            return execution.execute(new BaseUriRequestDecorator(request, baseUri), body);
+        }
 
-                @Override public URI getURI() {
-                    try {
-                        return new URI(baseUri + request.getURI().toString());
-                    } catch (final URISyntaxException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
+        private static final class BaseUriRequestDecorator implements HttpRequest {
 
-                @Override public HttpHeaders getHeaders() {
-                    return request.getHeaders();
-                }
-            };
-            return execution.execute(baseRequest, body);
+            private final HttpRequest request;
+            private final URI baseUri;
+
+            private BaseUriRequestDecorator(final HttpRequest request, final URI baseUri) {
+                this.request = request;
+                this.baseUri = baseUri;
+            }
+
+            @Override public HttpMethod getMethod() {
+                return request.getMethod();
+            }
+
+            @Override public URI getURI() {
+                return create(baseUri + request.getURI().toString());
+            }
+
+            @Override public HttpHeaders getHeaders() {
+                return request.getHeaders();
+            }
         }
     }
 }

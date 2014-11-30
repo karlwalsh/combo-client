@@ -1,13 +1,15 @@
 package combo;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriTemplate;
 
 import java.net.URI;
 import java.util.Map;
-import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+import static java.util.stream.Stream.generate;
 
 final class HttpCombo implements Combo {
 
@@ -21,39 +23,13 @@ final class HttpCombo implements Combo {
         this.topicSubscriber = new TopicSubscriber(restTemplate);
     }
 
-    @Override public <T> Subscription<T> subscribeTo(final String topicName, final Class<? extends T> factClass) {
+    public <T> Stream<T> facts(final String topicName, final Class<? extends T> factClass) {
         final SubscriptionId subscriptionId = topicSubscriber.subscribeTo(topicName);
-        return new BlockingSubscription<>(factProvider, subscriptionId, factClass);
+        return generate(() -> factProvider.nextFact(subscriptionId, factClass));
     }
 
     @Override public <T> void publishFact(final String topicName, final T fact) {
         factPublisher.publishFact(topicName, fact);
-    }
-
-    private static final class BlockingSubscription<T> implements Subscription<T> {
-
-        private final FactProvider factProvider;
-        private final SubscriptionId subscriptionId;
-        private final Class<? extends T> factClass;
-
-        private BlockingSubscription(final FactProvider factProvider,
-                                     final SubscriptionId subscriptionId,
-                                     final Class<? extends T> factClass) {
-            this.factProvider = factProvider;
-            this.subscriptionId = subscriptionId;
-            this.factClass = factClass;
-        }
-
-        @Override public Optional<T> nextFact() {
-            return factProvider.nextFact(subscriptionId, factClass);
-        }
-
-        @Override public void forEach(final Consumer<T> factConsumer) {
-            //noinspection InfiniteLoopStatement
-            while (true) {
-                nextFact().ifPresent(factConsumer);
-            }
-        }
     }
 
     private static final class FactProvider {
@@ -64,12 +40,15 @@ final class HttpCombo implements Combo {
             this.restTemplate = restTemplate;
         }
 
-        private <T> Optional<T> nextFact(final SubscriptionId subscriptionId, final Class<? extends T> classOfFact) {
+        private <T> T nextFact(final SubscriptionId subscriptionId, final Class<? extends T> classOfFact) {
             final ResponseEntity<? extends T> response = restTemplate.getForEntity(Paths.nextFact(subscriptionId), classOfFact);
 
-            return Optional.ofNullable(response.getBody());
-        }
+            if (response.getStatusCode() == HttpStatus.NO_CONTENT) {
+                return nextFact(subscriptionId, classOfFact);
+            }
 
+            return response.getBody();
+        }
     }
 
     private static final class TopicSubscriber {

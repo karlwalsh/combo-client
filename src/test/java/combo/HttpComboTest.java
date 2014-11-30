@@ -6,12 +6,15 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.net.URI;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static com.googlecode.catchexception.CatchException.caughtException;
 import static com.googlecode.catchexception.apis.CatchExceptionAssertJ.then;
 import static com.googlecode.catchexception.apis.CatchExceptionAssertJ.when;
 import static combo.ComboFactory.httpCombo;
 import static combo.ComboServerRule.ComboServerResponse.*;
+import static combo.HttpComboTest.ConsumedFact.consumedFact;
 import static combo.HttpComboTest.ConsumedFact.randomConsumedFact;
 import static combo.HttpComboTest.PublishedFact.randomPublishedFact;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -128,11 +131,69 @@ public final class HttpComboTest {
                 .containsExactly(fact1, fact2, fact3, fact4);
     }
 
+    @Test public void consumedFactsCanBeFiltered() {
+        //Given
+        final String topicName = RDG.topicName().next();
+        final String subscriptionId = RDG.subscriptionId().next();
+        comboServer.whenTopicIsSubscribedTo(topicName)
+                .thenRespondWith(subscriptionWithId(subscriptionId));
+
+        final ConsumedFact fact1 = consumedFact(1L);
+        final ConsumedFact fact2 = consumedFact(2L);
+        final ConsumedFact fact3 = consumedFact(3L);
+        comboServer.whenNextFactIsRequested(topicName, subscriptionId)
+                .thenRespondWith(fact(fact1), fact(fact2), fact(fact3));
+
+        //When
+        final List<ConsumedFact> facts = consumeFactsAndFilter(topicName, ConsumedFact.class, fact -> fact.getSomeField() == 2L);
+
+        //Then
+        assertThat(facts).containsExactly(fact2);
+    }
+
+    @Test public void consumedFactsCanBeTransformed() {
+        //Given
+        final String topicName = RDG.topicName().next();
+        final String subscriptionId = RDG.subscriptionId().next();
+        comboServer.whenTopicIsSubscribedTo(topicName)
+                .thenRespondWith(subscriptionWithId(subscriptionId));
+
+        final ConsumedFact fact1 = consumedFact(1L);
+        final ConsumedFact fact2 = consumedFact(2L);
+        final ConsumedFact fact3 = consumedFact(3L);
+        comboServer.whenNextFactIsRequested(topicName, subscriptionId)
+                .thenRespondWith(fact(fact1), fact(fact2), fact(fact3));
+
+        //When
+        final List<Long> facts = consumeFactsAndTransform(topicName, ConsumedFact.class, fact -> fact.getSomeField());
+
+        //Then
+        assertThat(facts).containsExactly(1L, 2L, 3L);
+    }
+
     private <T> List<T> consumeFacts(final String topicName, final Class<? extends T> classOfT) {
-        final FactCollector<T> factCollector = new FactCollector<>();
+        return consumeFactsFilterAndTransform(topicName, classOfT, f -> true, f -> f);
+    }
+
+    private <T> List<T> consumeFactsAndFilter(final String topicName, final Class<? extends T> classOfT, final Predicate<T> predicate) {
+        return consumeFactsFilterAndTransform(topicName, classOfT, predicate, f -> f);
+    }
+
+    private <T, R> List<R> consumeFactsAndTransform(final String topicName, final Class<? extends T> classOfT, final Function<T, R> function) {
+        return consumeFactsFilterAndTransform(topicName, classOfT, f -> true, function);
+    }
+
+    private <T, R> List<R> consumeFactsFilterAndTransform(final String topicName,
+                                                          final Class<? extends T> classOfT,
+                                                          final Predicate<T> predicate,
+                                                          final Function<T, R> function) {
+        final FactCollector<R> factCollector = new FactCollector<>();
 
         try {
-            combo.subscribeTo(topicName, classOfT).forEach(factCollector);
+            combo.facts(topicName, classOfT)
+                    .filter(predicate)
+                    .map(function)
+                    .forEach(factCollector);
         } catch (final HttpClientErrorException e) {
             //Swallow exception, we're using it to terminate the fact request loop
         }
@@ -154,6 +215,10 @@ public final class HttpComboTest {
 
         static ConsumedFact randomConsumedFact() {
             return new ConsumedFact(RDG.longVal().next());
+        }
+
+        static ConsumedFact consumedFact(final long someField) {
+            return new ConsumedFact(someField);
         }
 
         @Override public boolean equals(final Object o) {
