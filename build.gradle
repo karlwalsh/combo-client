@@ -10,13 +10,13 @@ repositories {
 dependencies {
     compile 'com.google.code.gson:gson:2.3'
     compile 'org.springframework:spring-web:4.1.2.RELEASE'
-    compile 'org.springframework:spring-test:4.1.2.RELEASE'
 
     testCompile 'junit:junit:4.11'
-    testCompile 'uk.org.fyodor:fyodor-core:1.0.0'
-    testCompile 'uk.org.fyodor:fyodor-junit:1.0.0'
     testCompile 'org.assertj:assertj-core:1.4.0'
     testCompile 'com.googlecode.catch-exception:catch-exception:1.2.0'
+    testCompile 'com.github.tomakehurst:wiremock:1.52'
+    testCompile 'uk.org.fyodor:fyodor-core:1.0.0'
+    testCompile 'uk.org.fyodor:fyodor-junit:1.0.0'
 }
 
 task wrapper(type: Wrapper) {

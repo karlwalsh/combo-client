@@ -100,6 +100,25 @@ final class HttpCombo implements Combo {
         }
     }
 
+    private static final class SubscriptionId {
+
+        private final String topicName;
+        private final String comboId;
+
+        private SubscriptionId(final String topicName, final String comboId) {
+            this.topicName = topicName;
+            this.comboId = comboId;
+        }
+
+        private String topicName() {
+            return topicName;
+        }
+
+        private String comboId() {
+            return comboId;
+        }
+    }
+
     private static final class Paths {
 
         private static URI subscriptions(final String topicName) {
@@ -114,5 +133,6 @@ final class HttpCombo implements Combo {
         public static URI facts(final String topicName) {
             return new UriTemplate("/topics/{topicName}/facts").expand(topicName);
         }
+
     }
 }

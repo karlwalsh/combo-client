@@ -17,24 +17,17 @@ import static java.util.Collections.singletonList;
 
 public final class ComboFactory {
 
-    public static Combo httpCombo(final URI baseUrl, final RestTemplateVisitor... restTemplateVisitors) {
-        return new HttpCombo(restTemplate(baseUrl, restTemplateVisitors));
+    public static Combo httpCombo(final URI baseUrl) {
+        return new HttpCombo(restTemplate(baseUrl));
     }
 
     private ComboFactory() {
     }
 
-    private static RestTemplate restTemplate(final URI baseUrl, final RestTemplateVisitor... restTemplateVisitors) {
+    private static RestTemplate restTemplate(final URI baseUrl) {
         final RestTemplate restTemplate = new RestTemplate(singletonList(new GsonHttpMessageConverter()));
-        for (final RestTemplateVisitor visitor : restTemplateVisitors) {
-            visitor.visit(restTemplate);
-        }
         restTemplate.getInterceptors().add(new BaseUrlInterceptor(baseUrl));
         return restTemplate;
-    }
-
-    public interface RestTemplateVisitor {
-        void visit(final RestTemplate restTemplate);
     }
 
     private static final class BaseUrlInterceptor implements ClientHttpRequestInterceptor {

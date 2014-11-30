@@ -9,7 +9,7 @@ public final class RDG extends uk.org.fyodor.generators.RDG {
         return string(10, CharacterSetFilter.LettersAndDigits);
     }
 
-    public static Generator<String> subscriptionReference() {
+    public static Generator<String> subscriptionId() {
         return string(10, CharacterSetFilter.LettersAndDigits);
     }
 
