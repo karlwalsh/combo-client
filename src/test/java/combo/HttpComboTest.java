@@ -2,30 +2,31 @@ package combo;
 
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.net.URI;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static com.googlecode.catchexception.CatchException.caughtException;
-import static com.googlecode.catchexception.apis.CatchExceptionAssertJ.then;
-import static com.googlecode.catchexception.apis.CatchExceptionAssertJ.when;
 import static combo.ComboFactory.httpCombo;
 import static combo.ComboServerRule.ComboServerResponse.*;
 import static combo.HttpComboTest.ConsumedFact.consumedFact;
 import static combo.HttpComboTest.ConsumedFact.randomConsumedFact;
 import static combo.HttpComboTest.PublishedFact.randomPublishedFact;
+import static java.net.URI.create;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.rules.ExpectedException.none;
 import static uk.org.fyodor.generators.characters.CharacterSetFilter.LettersOnly;
 
 public final class HttpComboTest {
 
-    @Rule
-    public final ComboServerRule comboServer = new ComboServerRule(8080);
+    @Rule public final ComboServerRule comboServer = new ComboServerRule(8080);
 
-    private final Combo combo = httpCombo(URI.create("http://localhost:8080"));
+    @Rule public final ExpectedException thrown = none();
+
+    private final Combo combo = httpCombo(create("http://localhost:8080"));
 
     @Test public void publishesFact() {
         //Given
@@ -40,17 +41,16 @@ public final class HttpComboTest {
     }
 
     @Test public void throwsExceptionWhenResponseToPublishedFactIsBadRequest() {
+        //Expect
+        thrown.expect(HttpClientErrorException.class);
+        thrown.expectMessage(containsString("400 Bad Request"));
+
         //Given
         final String topicName = RDG.topicName().next();
         comboServer.whenFactIsPublished(topicName).thenRespondWith(badRequest());
 
         //When
-        when(combo).publishFact(topicName, randomPublishedFact());
-
-        //Then
-        then(caughtException())
-                .isInstanceOf(HttpClientErrorException.class)
-                .hasMessage("400 Bad Request");
+        combo.publishFact(topicName, randomPublishedFact());
     }
 
     @Test public void consumesFirstFactFromTopic() {
@@ -234,6 +234,12 @@ public final class HttpComboTest {
         @Override public int hashCode() {
             return (int) (someField ^ (someField >>> 32));
         }
+
+        @Override public String toString() {
+            return "ConsumedFact{" +
+                    "someField=" + someField +
+                    '}';
+        }
     }
 
     static final class PublishedFact {
@@ -264,6 +270,12 @@ public final class HttpComboTest {
 
         @Override public int hashCode() {
             return someField != null ? someField.hashCode() : 0;
+        }
+
+        @Override public String toString() {
+            return "PublishedFact{" +
+                    "someField='" + someField + '\'' +
+                    '}';
         }
     }
 }
