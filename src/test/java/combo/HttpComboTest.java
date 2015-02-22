@@ -194,7 +194,7 @@ public final class HttpComboTest {
                     .filter(predicate)
                     .map(function)
                     .forEach(factCollector);
-        } catch (final HttpClientErrorException e) {
+        } catch (final HttpClient.HttpClientException e) {
             //Swallow exception, we're using it to terminate the fact request loop
         }
 
@@ -209,16 +209,16 @@ public final class HttpComboTest {
             this.someField = someField;
         }
 
-        @SuppressWarnings("UnusedDeclaration") long getSomeField() {
-            return someField;
-        }
-
         static ConsumedFact randomConsumedFact() {
             return new ConsumedFact(RDG.longVal().next());
         }
 
         static ConsumedFact consumedFact(final long someField) {
             return new ConsumedFact(someField);
+        }
+
+        @SuppressWarnings("UnusedDeclaration") long getSomeField() {
+            return someField;
         }
 
         @Override public boolean equals(final Object o) {
@@ -250,12 +250,12 @@ public final class HttpComboTest {
             this.someField = someField;
         }
 
-        @SuppressWarnings("UnusedDeclaration") String getSomeField() {
-            return someField;
-        }
-
         static PublishedFact randomPublishedFact() {
             return new PublishedFact(RDG.string(30, LettersOnly).next());
+        }
+
+        @SuppressWarnings("UnusedDeclaration") String getSomeField() {
+            return someField;
         }
 
         @Override public boolean equals(final Object o) {

@@ -8,13 +8,17 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static combo.ComboServerRule.Header.ContentType.JSON;
 import static combo.ComboServerRule.Header.Keys.CONTENT_TYPE;
 import static combo.ComboServerRule.HttpStatus.*;
 import static java.lang.String.format;
+import static java.util.Arrays.asList;
 
 public final class ComboServerRule implements TestRule {
 
@@ -22,6 +26,12 @@ public final class ComboServerRule implements TestRule {
 
     public ComboServerRule(final int port) {
         this.server = new WireMockServer(port);
+    }
+
+    @SuppressWarnings("unchecked") private static <T> List<T> combine(final T firstT, final T... restOfTheTs) {
+        final List<T> allTheTs = new ArrayList<>(asList(restOfTheTs));
+        allTheTs.add(0, firstT);
+        return allTheTs;
     }
 
     @Override public Statement apply(final Statement base, final Description description) {
@@ -106,13 +116,6 @@ public final class ComboServerRule implements TestRule {
             subscriptionAsJson.put("subscription_id", subscriptionId);
             return new Gson().toJson(subscriptionAsJson);
         }
-
-    }
-
-    @SuppressWarnings("unchecked") private static <T> List<T> combine(final T firstT, final T... restOfTheTs) {
-        final List<T> allTheTs = new ArrayList<>(Arrays.asList(restOfTheTs));
-        allTheTs.add(0, firstT);
-        return allTheTs;
     }
 
     static final class Header {

@@ -1,8 +1,6 @@
 package combo;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
+import combo.HttpClient.HttpResponse;
 import org.springframework.web.util.UriTemplate;
 
 import java.net.URI;
@@ -17,10 +15,10 @@ final class HttpCombo implements Combo {
     private final FactPublisher factPublisher;
     private final TopicSubscriber topicSubscriber;
 
-    HttpCombo(final RestTemplate restTemplate) {
-        this.factProvider = new FactProvider(restTemplate);
-        this.factPublisher = new FactPublisher(restTemplate);
-        this.topicSubscriber = new TopicSubscriber(restTemplate);
+    HttpCombo(final HttpClient httpClient) {
+        this.factProvider = new FactProvider(httpClient);
+        this.factPublisher = new FactPublisher(httpClient);
+        this.topicSubscriber = new TopicSubscriber(httpClient);
     }
 
     public <T> Stream<T> facts(final String topicName, final Class<? extends T> factClass) {
@@ -34,16 +32,18 @@ final class HttpCombo implements Combo {
 
     private static final class FactProvider {
 
-        private final RestTemplate restTemplate;
+        public static final int HTTP_NO_CONTENT = 204;
 
-        private FactProvider(final RestTemplate restTemplate) {
-            this.restTemplate = restTemplate;
+        private final HttpClient httpClient;
+
+        private FactProvider(final HttpClient httpClient) {
+            this.httpClient = httpClient;
         }
 
         private <T> T nextFact(final SubscriptionId subscriptionId, final Class<? extends T> classOfFact) {
-            final ResponseEntity<? extends T> response = restTemplate.getForEntity(Paths.nextFact(subscriptionId), classOfFact);
+            final HttpResponse<? extends T> response = httpClient.get(Paths.nextFact(subscriptionId), classOfFact);
 
-            if (response.getStatusCode() == HttpStatus.NO_CONTENT) {
+            if (response.getStatusCode() == HTTP_NO_CONTENT) {
                 return nextFact(subscriptionId, classOfFact);
             }
 
@@ -53,14 +53,14 @@ final class HttpCombo implements Combo {
 
     private static final class TopicSubscriber {
 
-        private final RestTemplate restTemplate;
+        private final HttpClient httpClient;
 
-        private TopicSubscriber(final RestTemplate restTemplate) {
-            this.restTemplate = restTemplate;
+        private TopicSubscriber(final HttpClient httpClient) {
+            this.httpClient = httpClient;
         }
 
         private SubscriptionId subscribeTo(final String topicName) {
-            final ResponseEntity<Map> response = restTemplate.postForEntity(Paths.subscriptions(topicName), "", Map.class);
+            final HttpResponse<Map> response = httpClient.post(Paths.subscriptions(topicName), "", Map.class);
             final String comboId = (String) response.getBody().get("subscription_id");
             return new SubscriptionId(topicName, comboId);
         }
@@ -68,14 +68,14 @@ final class HttpCombo implements Combo {
 
     private static final class FactPublisher {
 
-        private final RestTemplate restTemplate;
+        private final HttpClient httpClient;
 
-        private FactPublisher(final RestTemplate restTemplate) {
-            this.restTemplate = restTemplate;
+        private FactPublisher(final HttpClient httpClient) {
+            this.httpClient = httpClient;
         }
 
         private <T> void publishFact(final String topicName, final T fact) {
-            restTemplate.postForEntity(Paths.facts(topicName), fact, Void.class);
+            httpClient.post(Paths.facts(topicName), fact, Void.class);
         }
     }
 
