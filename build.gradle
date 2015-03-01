@@ -1,4 +1,7 @@
-apply plugin: 'java'
+plugins {
+    id 'java'
+    id 'wrapper'
+}
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -18,7 +21,6 @@ dependencies {
     testCompile('uk.org.fyodor:fyodor-junit:1.0.0')
 }
 
-task wrapper(type: Wrapper) {
+wrapper {
     gradleVersion = '2.3'
-    distributionUrl = "http://services.gradle.org/distributions/gradle-${gradleVersion}-all.zip"
 }

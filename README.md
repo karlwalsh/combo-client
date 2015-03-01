@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/KarlWalsh/ComboClient.svg?branch=master)](https://travis-ci.org/KarlWalsh/ComboClient)
+[![Build Status](https://travis-ci.org/KarlWalsh/combo-client.svg?branch=master)](https://travis-ci.org/KarlWalsh/combo-client)
 
-ComboClient
+Combo Client
 ===========
 
 ##Example usage##
