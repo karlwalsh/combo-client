@@ -9,14 +9,19 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static combo.ComboFactory.httpCombo;
 import static combo.ComboServerRule.ComboServerResponse.*;
+import static combo.HttpCombo.httpCombo;
 import static combo.HttpComboTest.ConsumedFact.consumedFact;
 import static combo.HttpComboTest.ConsumedFact.randomConsumedFact;
 import static combo.HttpComboTest.PublishedFact.randomPublishedFact;
+import static combo.RestTemplateHttpClient.restTemplateHttpClient;
 import static java.net.URI.create;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.rules.ExpectedException.none;
 import static uk.org.fyodor.generators.characters.CharacterSetFilter.LettersOnly;
 
@@ -26,7 +31,7 @@ public final class HttpComboTest {
 
     @Rule public final ExpectedException thrown = none();
 
-    private final Combo combo = httpCombo(create("http://localhost:8080"));
+    private final Combo combo = httpCombo(restTemplateHttpClient(create("http://localhost:8080")));
 
     @Test public void publishesFact() {
         //Given
@@ -68,7 +73,7 @@ public final class HttpComboTest {
         final List<ConsumedFact> facts = consumeFacts(topicName, ConsumedFact.class);
 
         //Then
-        assertThat(facts).containsExactly(consumedFact);
+        assertThat(facts, contains(consumedFact));
     }
 
     @Test public void consumesFirstTwoFactsFromTopic() {
@@ -88,8 +93,7 @@ public final class HttpComboTest {
         final List<ConsumedFact> facts = consumeFacts(topicName, ConsumedFact.class);
 
         //Then
-        assertThat(facts)
-                .containsExactly(firstFact, secondFact);
+        assertThat(facts, contains(firstFact, secondFact));
     }
 
     @Test public void consumesZeroFactsWhenThereIsNoContent() {
@@ -106,7 +110,7 @@ public final class HttpComboTest {
         final List<ConsumedFact> facts = consumeFacts(topicName, ConsumedFact.class);
 
         //Then
-        assertThat(facts).isEmpty();
+        assertThat(facts, is(empty()));
     }
 
     @Test public void onlyPresentFactsAreConsumed() {
@@ -127,8 +131,7 @@ public final class HttpComboTest {
         final List<ConsumedFact> facts = consumeFacts(topicName, ConsumedFact.class);
 
         //Then
-        assertThat(facts)
-                .containsExactly(fact1, fact2, fact3, fact4);
+        assertThat(facts, contains(fact1, fact2, fact3, fact4));
     }
 
     @Test public void consumedFactsCanBeFiltered() {
@@ -148,7 +151,8 @@ public final class HttpComboTest {
         final List<ConsumedFact> facts = consumeFactsAndFilter(topicName, ConsumedFact.class, fact -> fact.getSomeField() == 2L);
 
         //Then
-        assertThat(facts).containsExactly(fact2);
+        assertThat(facts, contains(fact2));
+        assertThat(facts, not(contains(fact1, fact3)));
     }
 
     @Test public void consumedFactsCanBeTransformed() {
@@ -168,7 +172,7 @@ public final class HttpComboTest {
         final List<Long> facts = consumeFactsAndTransform(topicName, ConsumedFact.class, fact -> fact.getSomeField());
 
         //Then
-        assertThat(facts).containsExactly(1L, 2L, 3L);
+        assertThat(facts, contains(1L, 2L, 3L));
     }
 
     private <T> List<T> consumeFacts(final String topicName, final Class<? extends T> classOfT) {
@@ -194,7 +198,7 @@ public final class HttpComboTest {
                     .filter(predicate)
                     .map(function)
                     .forEach(factCollector);
-        } catch (final HttpClient.HttpClientException e) {
+        } catch (final HttpClientException e) {
             //Swallow exception, we're using it to terminate the fact request loop
         }
 

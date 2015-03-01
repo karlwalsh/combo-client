@@ -1,0 +1,9 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    compile project(':combo-client-api')
+    compile project(':combo-client-http')
+    compile project(':combo-client-http-spring')
+}

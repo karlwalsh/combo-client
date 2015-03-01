@@ -3,22 +3,19 @@ plugins {
     id 'wrapper'
 }
 
-sourceCompatibility = JavaVersion.VERSION_1_8
-targetCompatibility = JavaVersion.VERSION_1_8
+allprojects {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
 
-repositories {
-    mavenCentral()
+    repositories {
+        mavenCentral()
+    }
 }
 
-dependencies {
-    compile('com.google.code.gson:gson:2.3')
-    compile('org.springframework:spring-web:4.1.5.RELEASE')
-
-    testCompile('junit:junit:4.12')
-    testCompile('org.assertj:assertj-core:1.4.0')
-    testCompile('com.github.tomakehurst:wiremock:1.53')
-    testCompile('uk.org.fyodor:fyodor-core:1.0.0')
-    testCompile('uk.org.fyodor:fyodor-junit:1.0.0')
+ext {
+    fyodorVersion = '1.0.0'
+    jUnitVersion = '4.12'
+    hamcrestVersion = '1.3'
 }
 
 wrapper {

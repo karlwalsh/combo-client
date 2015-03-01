@@ -1,0 +1,17 @@
+plugins {
+    id "java"
+}
+
+dependencies {
+    compile project(":combo-client-api")
+    compile project(":combo-client-http")
+
+    compile("com.google.code.gson:gson:2.3")
+    compile("org.springframework:spring-web:4.1.5.RELEASE")
+
+    testCompile("junit:junit:$jUnitVersion")
+    testCompile("org.hamcrest:hamcrest-all:$hamcrestVersion")
+    testCompile("uk.org.fyodor:fyodor-core:$fyodorVersion")
+    testCompile("uk.org.fyodor:fyodor-junit:$fyodorVersion")
+    testCompile("com.github.tomakehurst:wiremock:1.53")
+}

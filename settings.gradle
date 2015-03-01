@@ -1,2 +1,6 @@
 rootProject.name = 'combo-client'
 
+include 'combo-client-api'
+include 'combo-client-http'
+include 'combo-client-http-spring'
+include 'combo-client-example'

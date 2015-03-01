@@ -13,33 +13,30 @@ import java.net.URI;
 import static java.net.URI.create;
 import static java.util.Collections.singletonList;
 
-public final class ComboFactory {
+public final class RestTemplateHttpClient implements HttpClient {
 
-    private ComboFactory() {
-        throw new AssertionError("Use my static methods instead");
+    private final RestTemplate restTemplate;
+
+    private RestTemplateHttpClient(final RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
     }
 
-    public static Combo httpCombo(final URI baseUri) {
-        final RestTemplate restTemplate = restTemplate(baseUri);
-        return new HttpCombo(restTemplateBasedHttpClient(restTemplate));
+    @Override public <T> HttpResponse<T> get(final URI path, final Class<T> classOfT) {
+        try {
+            final ResponseEntity<T> response = restTemplate.getForEntity(path, classOfT);
+            return new HttpResponse<>(response.getStatusCode().value(), response.getBody());
+        } catch (final HttpClientErrorException e) {
+            throw new HttpClientException(e);
+        }
     }
 
-    private static HttpClient restTemplateBasedHttpClient(final RestTemplate restTemplate) {
-        return new HttpClient() {
-            @Override public <T> HttpResponse<T> get(final URI path, final Class<T> classOfT) {
-                try {
-                    final ResponseEntity<T> response = restTemplate.getForEntity(path, classOfT);
-                    return new HttpResponse<>(response.getStatusCode().value(), response.getBody());
-                } catch (final HttpClientErrorException e) {
-                    throw new HttpClientException(e);
-                }
-            }
+    @Override public <T> HttpResponse<T> post(final URI path, final Object body, final Class<T> responseType) {
+        final ResponseEntity<T> response = restTemplate.postForEntity(path, body, responseType);
+        return new HttpResponse<>(response.getStatusCode().value(), response.getBody());
+    }
 
-            @Override public <T> HttpResponse<T> post(final URI path, final Object body, final Class<T> responseType) {
-                final ResponseEntity<T> response = restTemplate.postForEntity(path, body, responseType);
-                return new HttpResponse<>(response.getStatusCode().value(), response.getBody());
-            }
-        };
+    public static HttpClient restTemplateHttpClient(final URI baseUri) {
+        return new RestTemplateHttpClient(restTemplate(baseUri));
     }
 
     private static RestTemplate restTemplate(final URI baseUri) {
@@ -71,5 +68,4 @@ public final class ComboFactory {
             return request.getHeaders();
         }
     }
-
 }

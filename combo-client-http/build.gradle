@@ -1,0 +1,13 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    compile project(':combo-client-api')
+
+    testCompile("junit:junit:$jUnitVersion")
+    testCompile("org.hamcrest:hamcrest-all:$hamcrestVersion")
+    testCompile("uk.org.fyodor:fyodor-core:$fyodorVersion")
+    testCompile("uk.org.fyodor:fyodor-junit:$fyodorVersion")
+    testCompile('org.mockito:mockito-core:2.0.4-beta')
+}

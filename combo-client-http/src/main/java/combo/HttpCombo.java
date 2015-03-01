@@ -1,33 +1,48 @@
 package combo;
 
-import combo.HttpClient.HttpResponse;
-import org.springframework.web.util.UriTemplate;
-
 import java.net.URI;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static java.lang.String.format;
+import static java.net.URI.create;
 import static java.util.stream.Stream.generate;
 
-final class HttpCombo implements Combo {
+public final class HttpCombo implements Combo {
 
     private final FactProvider factProvider;
     private final FactPublisher factPublisher;
     private final TopicSubscriber topicSubscriber;
 
-    HttpCombo(final HttpClient httpClient) {
+    private HttpCombo(final HttpClient httpClient) {
         this.factProvider = new FactProvider(httpClient);
         this.factPublisher = new FactPublisher(httpClient);
         this.topicSubscriber = new TopicSubscriber(httpClient);
     }
 
-    public <T> Stream<T> facts(final String topicName, final Class<? extends T> factClass) {
+    @Override public <T> Stream<T> facts(final String topicName, final Class<? extends T> factClass) {
+        checkNotNull(topicName, "Cannot consume facts from null topic");
+        checkNotNull(factClass, "Cannot consume facts of an unspecified type. Use 'Map.class' if you don't have a more specific type");
+
         final SubscriptionId subscriptionId = topicSubscriber.subscribeTo(topicName);
+
         return generate(() -> factProvider.nextFact(subscriptionId, factClass));
     }
 
     @Override public <T> void publishFact(final String topicName, final T fact) {
+        checkNotNull(topicName, "Cannot publish facts to a null topic");
+
         factPublisher.publishFact(topicName, fact);
+    }
+
+    public static Combo httpCombo(final HttpClient httpClient) {
+        return new HttpCombo(httpClient);
+    }
+
+    private static void checkNotNull(final Object argument, final String message) {
+        if (argument == null) {
+            throw new IllegalArgumentException(message);
+        }
     }
 
     private static final class FactProvider {
@@ -101,16 +116,15 @@ final class HttpCombo implements Combo {
     private static final class Paths {
 
         private static URI subscriptions(final String topicName) {
-            return new UriTemplate("/topics/{topicName}/subscriptions").expand(topicName);
+            return create(format("/topics/%s/subscriptions", topicName));
         }
 
         private static URI nextFact(final SubscriptionId subscriptionId) {
-            return new UriTemplate("/topics/{topicName}/subscriptions/{subscriptionId}/next")
-                    .expand(subscriptionId.topicName(), subscriptionId.comboId());
+            return create(format("/topics/%s/subscriptions/%s/next", subscriptionId.topicName(), subscriptionId.comboId()));
         }
 
         public static URI facts(final String topicName) {
-            return new UriTemplate("/topics/{topicName}/facts").expand(topicName);
+            return create(format("/topics/%s/facts", topicName));
         }
 
     }
