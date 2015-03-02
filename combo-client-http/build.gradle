@@ -5,6 +5,8 @@ plugins {
 dependencies {
     compile project(':combo-client-api')
 
+    compile("com.google.code.gson:gson:2.3")
+
     testCompile("junit:junit:$jUnitVersion")
     testCompile("org.hamcrest:hamcrest-all:$hamcrestVersion")
     testCompile("uk.org.fyodor:fyodor-core:$fyodorVersion")

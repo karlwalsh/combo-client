@@ -1,9 +1,14 @@
 package combo;
 
+import com.google.gson.Gson;
+
 import java.net.URI;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static combo.HttpResponse.Status.NO_CONTENT;
+import static combo.HttpResponse.noContent;
 import static java.lang.String.format;
 import static java.net.URI.create;
 import static java.util.stream.Stream.generate;
@@ -15,9 +20,10 @@ public final class HttpCombo implements Combo {
     private final TopicSubscriber topicSubscriber;
 
     private HttpCombo(final HttpClient httpClient) {
-        this.factProvider = new FactProvider(httpClient);
-        this.factPublisher = new FactPublisher(httpClient);
-        this.topicSubscriber = new TopicSubscriber(httpClient);
+        final HttpClient gsonHttpClient = gsonHttpClient(httpClient);
+        this.factProvider = new FactProvider(gsonHttpClient);
+        this.factPublisher = new FactPublisher(gsonHttpClient);
+        this.topicSubscriber = new TopicSubscriber(gsonHttpClient);
     }
 
     @Override public <T> Stream<T> facts(final String topicName, final Class<? extends T> factClass) {
@@ -39,15 +45,60 @@ public final class HttpCombo implements Combo {
         return new HttpCombo(httpClient);
     }
 
+    private static GsonHttpClient gsonHttpClient(final HttpClient httpClient) {
+        return new GsonHttpClient(httpClient, new Gson());
+    }
+
     private static void checkNotNull(final Object argument, final String message) {
         if (argument == null) {
             throw new IllegalArgumentException(message);
         }
     }
 
-    private static final class FactProvider {
+    private static final class GsonHttpClient implements HttpClient {
 
-        public static final int HTTP_NO_CONTENT = 204;
+        private final HttpClient httpClient;
+        private final Gson gson;
+
+        private GsonHttpClient(final HttpClient httpClient, final Gson gson) {
+            this.httpClient = httpClient;
+            this.gson = gson;
+        }
+
+        @Override public <T> HttpResponse<T> get(final URI path, final Class<T> responseType) {
+            return responseBodyTransformer(gson, responseType)
+                    .apply(httpClient.get(path, String.class));
+        }
+
+        @Override
+        public <T> HttpResponse<T> post(final URI path, final Object requestBody, final Class<T> responseType) {
+            final String requestBodyString = requestBodyTransformer(gson).apply(requestBody);
+
+            return responseBodyTransformer(gson, responseType)
+                    .apply(httpClient.post(path, requestBodyString, String.class));
+        }
+
+        private static Function<Object, String> requestBodyTransformer(final Gson gson) {
+            return requestBody -> requestBody instanceof String
+                    ? (String) requestBody
+                    : gson.toJson(requestBody);
+        }
+
+        @SuppressWarnings("unchecked")
+        private static <T> Function<HttpResponse<String>, HttpResponse<T>> responseBodyTransformer(final Gson gson, final Class<? extends T> responseType) {
+            return response -> {
+                if (String.class == responseType) {
+                    return (HttpResponse<T>) response;
+                }
+
+                return response.getStatusCode() == NO_CONTENT
+                        ? noContent()
+                        : response.withBody(gson.fromJson(response.getBody(), responseType));
+            };
+        }
+    }
+
+    private static final class FactProvider {
 
         private final HttpClient httpClient;
 
@@ -58,7 +109,7 @@ public final class HttpCombo implements Combo {
         private <T> T nextFact(final SubscriptionId subscriptionId, final Class<? extends T> classOfFact) {
             final HttpResponse<? extends T> response = httpClient.get(Paths.nextFact(subscriptionId), classOfFact);
 
-            if (response.getStatusCode() == HTTP_NO_CONTENT) {
+            if (response.getStatusCode() == NO_CONTENT) {
                 return nextFact(subscriptionId, classOfFact);
             }
 
@@ -114,7 +165,6 @@ public final class HttpCombo implements Combo {
     }
 
     private static final class Paths {
-
         private static URI subscriptions(final String topicName) {
             return create(format("/topics/%s/subscriptions", topicName));
         }
@@ -126,6 +176,5 @@ public final class HttpCombo implements Combo {
         public static URI facts(final String topicName) {
             return create(format("/topics/%s/facts", topicName));
         }
-
     }
 }

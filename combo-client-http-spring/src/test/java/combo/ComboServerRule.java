@@ -49,6 +49,7 @@ public final class ComboServerRule implements TestRule {
 
     public ComboServerResponseStep whenTopicIsSubscribedTo(final String topicName) {
         return (response, restOfTheResponses) -> server.givenThat(post(urlEqualTo(format("/topics/%s/subscriptions", topicName)))
+                .withHeader("Content-Type", equalTo(JSON))
                 .willReturn(response.responseDefinitionBuilder));
     }
 
@@ -68,11 +69,13 @@ public final class ComboServerRule implements TestRule {
 
     public ComboServerResponseStep whenFactIsPublished(final String topicName) {
         return (response, restOfTheResponses) -> server.givenThat(post(urlEqualTo(format("/topics/%s/facts", topicName)))
+                .withHeader("Content-Type", equalTo(JSON))
                 .willReturn(response.responseDefinitionBuilder));
     }
 
     public void verifyFactWasPublished(final String topicName) {
-        server.verify(postRequestedFor(urlEqualTo(format("/topics/%s/facts", topicName))));
+        server.verify(postRequestedFor(urlEqualTo(format("/topics/%s/facts", topicName)))
+                .withHeader("Content-Type", equalTo(JSON)));
     }
 
     public interface ComboServerResponseStep {

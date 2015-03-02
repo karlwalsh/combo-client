@@ -1,17 +1,19 @@
 package combo;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpRequest;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.converter.json.GsonHttpMessageConverter;
+import org.springframework.http.*;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.List;
 
 import static java.net.URI.create;
 import static java.util.Collections.singletonList;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 public final class RestTemplateHttpClient implements HttpClient {
 
@@ -30,9 +32,15 @@ public final class RestTemplateHttpClient implements HttpClient {
         }
     }
 
-    @Override public <T> HttpResponse<T> post(final URI path, final Object body, final Class<T> responseType) {
-        final ResponseEntity<T> response = restTemplate.postForEntity(path, body, responseType);
+    @Override public <T> HttpResponse<T> post(final URI path, final Object requestBody, final Class<T> responseType) {
+        final ResponseEntity<T> response = restTemplate.postForEntity(path, jsonEntity(requestBody), responseType);
         return new HttpResponse<>(response.getStatusCode().value(), response.getBody());
+    }
+
+    private static HttpEntity<Object> jsonEntity(final Object body) {
+        return new HttpEntity<>(body, new LinkedMultiValueMap<>(new HashMap<String, List<String>>() {{
+            put(CONTENT_TYPE, singletonList(APPLICATION_JSON_VALUE));
+        }}));
     }
 
     public static HttpClient restTemplateHttpClient(final URI baseUri) {
@@ -40,7 +48,7 @@ public final class RestTemplateHttpClient implements HttpClient {
     }
 
     private static RestTemplate restTemplate(final URI baseUri) {
-        final RestTemplate restTemplate = new RestTemplate(singletonList(new GsonHttpMessageConverter()));
+        final RestTemplate restTemplate = new RestTemplate(singletonList(new StringHttpMessageConverter()));
         restTemplate.getInterceptors().add((request, body, execution)
                 -> execution.execute(new BaseUriRequestDecorator(request, baseUri), body));
         return restTemplate;
