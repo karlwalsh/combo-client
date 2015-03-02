@@ -6,7 +6,7 @@ Combo Client
 ##Example usage##
 ```java
 public static void main(final String[] args) {
-    final Combo combo = httpCombo(create("http://combo-squirrel.herokuapp.com"));
+    final Combo combo = httpCombo(restTemplateHttpClient(create("http://combo-squirrel.herokuapp.com")));
 
     combo.facts("chat", Map.class)
             .map(fact -> fact.get("who"))
@@ -16,22 +16,24 @@ public static void main(final String[] args) {
 ```
 The first line creates a combo instance that uses `org.springframework.web.client.RestTemplate` to communicate with the combo server located at the specified URI. *This instance of Combo is thread-safe.*
 
-##Subscribing to topics##
+*See the `combo-client-example` module for more usage examples*
+
+##Subscribing to Facts##
 
 ```java
-combo.subscribeTo("some.topic", Map.class)
+combo.subscribeTo("some_topic", Map.class)
 ```
 
-This will create a `java.util.stream.Stream<T>` which produces facts as they arrive at the topic `some.topic` (in this example `<T>` is `java.lang.Map`). Gson is used to serilialise the json response from combo, so provide your desired type here. If you don't have one, then `java.lang.Map` may be a good choice.
+This will create a `java.util.stream.Stream<T>` which produces facts as they arrive at the topic `some_topic` (in this example `<T>` is `java.lang.Map`). Gson is used to serilialise the json response from combo, so provide your desired type here. If you don't have one, then `java.lang.Map` may be a good choice.
 
 The above example is mapping all chat facts to a String (the sender of the chat message) and filtering itself out of the incoming facts.
 
 *The `java.util.stream.Stream.forEach` method will not return unless there is an exception. If you wish to subscribe to multiple topics, you will need to handle that yourself.*
 
-##Publishing to topics##
+##Publishing Facts##
 
 ```java
-combo.publishFact("another.topic", fact)
+combo.publishFact("another_topic", fact)
 ```
 
 This will serialise the fact to json (using Gson) and publish the json to the combo server
